@@ -2,12 +2,11 @@
 
 import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { StatCard } from "./stat-card";
 import { CampaignsTable } from "./campaigns-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Mail, Phone, BarChart3, Users, TrendingUp, PhoneCall, Target, Calendar, Clock, ThumbsDown, Play, RefreshCw } from "lucide-react";
+import { Mail, Phone, BarChart3, Users, PhoneCall, Target, Calendar, Clock, ThumbsDown, Play, RefreshCw } from "lucide-react";
 
 import type { Campaign } from "@/lib/emailbison";
 import type { CallActivity } from "@/lib/close";
@@ -138,30 +137,33 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
               <Mail className="w-5 h-5 text-blue-400" />
               Cold Email Performance
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                title="Emails Sent"
-                value={emailStats.totalSent.toLocaleString()}
-                subtitle="Total emails delivered"
-                icon={<Mail className="w-4 h-4" />}
+            <div className="space-y-4">
+              <StatRow 
+                title="Replies"
+                icon={<Mail className="w-4 h-4 text-blue-400" />}
+                stats={{
+                  today: emailStats.repliesToday || 0,
+                  week: emailStats.repliesWeek || 0,
+                  month: emailStats.repliesMonth || 0,
+                }}
               />
-              <StatCard
-                title="Reply Rate"
-                value={`${emailStats.replyRate}%`}
-                subtitle={`${emailStats.totalReplies.toLocaleString()} total replies`}
-                icon={<TrendingUp className="w-4 h-4" />}
+              <StatRow 
+                title="Bounces"
+                icon={<Target className="w-4 h-4 text-red-400" />}
+                stats={{
+                  today: emailStats.bouncesToday || 0,
+                  week: emailStats.bouncesWeek || 0,
+                  month: emailStats.bouncesMonth || 0,
+                }}
               />
-              <StatCard
-                title="Bounce Rate"
-                value={`${emailStats.bounceRate}%`}
-                subtitle={`${emailStats.totalBounces.toLocaleString()} bounced`}
-                icon={<Target className="w-4 h-4" />}
-              />
-              <StatCard
-                title="Positive Reply Rate"
-                value={`${emailStats.positiveRate}%`}
-                subtitle={`${emailStats.positiveReplies.toLocaleString()} interested`}
-                icon={<Users className="w-4 h-4" />}
+              <StatRow 
+                title="Interested"
+                icon={<Users className="w-4 h-4 text-green-400" />}
+                stats={{
+                  today: emailStats.interestedToday || 0,
+                  week: emailStats.interestedWeek || 0,
+                  month: emailStats.interestedMonth || 0,
+                }}
               />
             </div>
           </div>
@@ -172,30 +174,33 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
               <Phone className="w-5 h-5 text-green-400" />
               Cold Calling Performance
             </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <StatCard
-                title="Calls Today"
-                value={callStats.todayCalls}
-                subtitle={`${callStats.weekCalls} this week`}
-                icon={<PhoneCall className="w-4 h-4" />}
-              />
-              <StatCard
-                title="Calls This Month"
-                value={callStats.monthCalls}
-                subtitle={`${callStats.totalCalls} total`}
-                icon={<Phone className="w-4 h-4" />}
-              />
-              <StatCard
-                title="Connect Rate"
-                value={`${callStats.connectRate}%`}
-                subtitle="Connected calls"
-                icon={<TrendingUp className="w-4 h-4" />}
-              />
-              <StatCard
+            <div className="space-y-4">
+              <StatRow 
                 title="Meetings Booked"
-                value={callStats.meetingsBooked}
-                subtitle="From cold calls"
-                icon={<Calendar className="w-4 h-4" />}
+                icon={<Calendar className="w-4 h-4 text-blue-400" />}
+                stats={{
+                  today: callStats.meetingsTodayCount || 0,
+                  week: callStats.meetingsWeekCount || 0,
+                  month: callStats.meetingsMonthCount || 0,
+                }}
+              />
+              <StatRow 
+                title="Not Interested"
+                icon={<ThumbsDown className="w-4 h-4 text-orange-400" />}
+                stats={{
+                  today: callStats.notInterestedTodayCount || 0,
+                  week: callStats.notInterestedWeekCount || 0,
+                  month: callStats.notInterestedMonthCount || 0,
+                }}
+              />
+              <StatRow 
+                title="Calls Made"
+                icon={<PhoneCall className="w-4 h-4 text-green-400" />}
+                stats={{
+                  today: callStats.todayCalls || 0,
+                  week: callStats.weekCalls || 0,
+                  month: callStats.monthCalls || 0,
+                }}
               />
             </div>
           </div>
