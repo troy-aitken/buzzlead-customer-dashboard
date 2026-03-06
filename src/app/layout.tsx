@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
+import Image from "next/image";
 import "./globals.css";
 
 const inter = Inter({ subsets: ["latin"] });
@@ -22,10 +23,13 @@ export default function RootLayout({
             <div className="container mx-auto px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-blue-500 rounded-lg flex items-center justify-center">
-                    <span className="text-white font-bold text-sm">B</span>
-                  </div>
-                  <h1 className="text-xl font-semibold text-white">BuzzLead</h1>
+                  <Image 
+                    src="/buzzlead-logo.jpg" 
+                    alt="BuzzLead" 
+                    width={180} 
+                    height={50}
+                    className="h-10 w-auto"
+                  />
                 </div>
                 <div className="text-sm text-slate-400">
                   Performance Dashboard
