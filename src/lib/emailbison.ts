@@ -1,10 +1,25 @@
-const EMAILBISON_API_KEY = process.env.EMAILBISON_API_KEY!;
-const EMAILBISON_BASE_URL = process.env.EMAILBISON_BASE_URL || 'https://send.buzzlead.io/api';
+// Default to env vars for backwards compatibility
+const DEFAULT_API_KEY = process.env.EMAILBISON_API_KEY || '';
+const DEFAULT_BASE_URL = process.env.EMAILBISON_BASE_URL || 'https://send.buzzlead.io/api';
 
-async function fetchEmailBison(endpoint: string) {
-  const res = await fetch(`${EMAILBISON_BASE_URL}${endpoint}`, {
+export interface BisonConfig {
+  apiKey: string;
+  baseUrl: string;
+}
+
+function getConfig(config?: BisonConfig): BisonConfig {
+  return {
+    apiKey: config?.apiKey || DEFAULT_API_KEY,
+    baseUrl: config?.baseUrl ? `${config.baseUrl}/api` : DEFAULT_BASE_URL,
+  };
+}
+
+async function fetchEmailBison(endpoint: string, config?: BisonConfig) {
+  const { apiKey, baseUrl } = getConfig(config);
+  
+  const res = await fetch(`${baseUrl}${endpoint}`, {
     headers: {
-      'Authorization': `Bearer ${EMAILBISON_API_KEY}`,
+      'Authorization': `Bearer ${apiKey}`,
       'Accept': 'application/json',
     },
     next: { revalidate: 60 },
@@ -78,13 +93,13 @@ export interface MeetingBooked {
   recordingUrl?: string;
 }
 
-export async function getCampaigns(): Promise<Campaign[]> {
-  const data = await fetchEmailBison('/campaigns');
+export async function getCampaigns(config?: BisonConfig): Promise<Campaign[]> {
+  const data = await fetchEmailBison('/campaigns', config);
   return data?.data || [];
 }
 
-export async function getReplies(limit: number = 200): Promise<Reply[]> {
-  const data = await fetchEmailBison(`/replies?limit=${limit}`);
+export async function getReplies(limit: number = 200, config?: BisonConfig): Promise<Reply[]> {
+  const data = await fetchEmailBison(`/replies?limit=${limit}`, config);
   return data?.data || [];
 }
 
@@ -96,10 +111,12 @@ function extractCompany(email: string): string {
   return company.charAt(0).toUpperCase() + company.slice(1);
 }
 
-export async function getInterestedLeads(): Promise<InterestedLead[]> {
+export async function getInterestedLeads(config?: BisonConfig): Promise<InterestedLead[]> {
   // Fetch recent replies and filter for interested ones
-  const replies = await getReplies(500);
+  const replies = await getReplies(500, config);
   const interestedReplies = replies.filter(r => r.interested && !r.automated_reply && r.type !== 'Bounced');
+  
+  const baseUrl = config?.baseUrl || 'https://send.buzzlead.io';
   
   return interestedReplies.map(reply => ({
     id: reply.id,
@@ -108,7 +125,7 @@ export async function getInterestedLeads(): Promise<InterestedLead[]> {
     email: reply.from_email_address || '',
     company: extractCompany(reply.from_email_address || ''),
     dateReceived: reply.date_received,
-    threadUrl: `https://send.buzzlead.io/replies/${reply.uuid}`,
+    threadUrl: `${baseUrl}/replies/${reply.uuid}`,
   }));
 }
 
@@ -123,17 +140,19 @@ interface Lead {
   updated_at: string;
 }
 
-async function getLeads(limit: number = 200): Promise<Lead[]> {
-  const data = await fetchEmailBison(`/leads?limit=${limit}`);
+async function getLeads(limit: number = 200, config?: BisonConfig): Promise<Lead[]> {
+  const data = await fetchEmailBison(`/leads?limit=${limit}`, config);
   return data?.data || [];
 }
 
-export async function getMeetingsBookedFromEmail(): Promise<MeetingBooked[]> {
+export async function getMeetingsBookedFromEmail(config?: BisonConfig): Promise<MeetingBooked[]> {
   // Fetch leads and filter for those with "Meeting Booked" tag
-  const leads = await getLeads(500);
+  const leads = await getLeads(500, config);
   const meetingBookedLeads = leads.filter(lead => 
     lead.tags?.some(tag => tag.name === 'Meeting Booked')
   );
+  
+  const baseUrl = config?.baseUrl || 'https://send.buzzlead.io';
   
   return meetingBookedLeads.map(lead => ({
     id: `email-${lead.id}`,
@@ -142,15 +161,15 @@ export async function getMeetingsBookedFromEmail(): Promise<MeetingBooked[]> {
     company: lead.company || extractCompany(lead.email),
     dateBooked: lead.updated_at, // Use updated_at as proxy for when tagged
     source: 'email' as const,
-    threadUrl: `https://send.buzzlead.io/leads/${lead.id}`,
+    threadUrl: `${baseUrl}/leads/${lead.id}`,
   }));
 }
 
-export async function getEmailStats() {
+export async function getEmailStats(config?: BisonConfig) {
   const [campaigns, replies, interestedLeads] = await Promise.all([
-    getCampaigns(),
-    getReplies(500), // Get recent replies for time-based stats
-    getInterestedLeads(),
+    getCampaigns(config),
+    getReplies(500, config), // Get recent replies for time-based stats
+    getInterestedLeads(config),
   ]);
   
   // Only count stats from ACTIVE campaigns (not draft/paused)
@@ -225,6 +244,6 @@ export async function getEmailStats() {
   };
 }
 
-export async function getCampaignsWithStats(): Promise<Campaign[]> {
-  return getCampaigns();
+export async function getCampaignsWithStats(config?: BisonConfig): Promise<Campaign[]> {
+  return getCampaigns(config);
 }
