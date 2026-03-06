@@ -67,6 +67,17 @@ export interface InterestedLead {
   threadUrl: string;
 }
 
+export interface MeetingBooked {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  dateBooked: string;
+  source: 'email' | 'call';
+  threadUrl?: string;
+  recordingUrl?: string;
+}
+
 export async function getCampaigns(): Promise<Campaign[]> {
   const data = await fetchEmailBison('/campaigns');
   return data?.data || [];
@@ -77,18 +88,18 @@ export async function getReplies(limit: number = 200): Promise<Reply[]> {
   return data?.data || [];
 }
 
+// Helper to extract company from email domain
+function extractCompany(email: string): string {
+  const domain = email.split('@')[1] || '';
+  // Remove common TLDs and format nicely
+  const company = domain.split('.')[0] || '';
+  return company.charAt(0).toUpperCase() + company.slice(1);
+}
+
 export async function getInterestedLeads(): Promise<InterestedLead[]> {
   // Fetch recent replies and filter for interested ones
   const replies = await getReplies(500);
   const interestedReplies = replies.filter(r => r.interested && !r.automated_reply && r.type !== 'Bounced');
-  
-  // Extract company from email domain
-  const extractCompany = (email: string): string => {
-    const domain = email.split('@')[1] || '';
-    // Remove common TLDs and format nicely
-    const company = domain.split('.')[0] || '';
-    return company.charAt(0).toUpperCase() + company.slice(1);
-  };
   
   return interestedReplies.map(reply => ({
     id: reply.id,
@@ -98,6 +109,40 @@ export async function getInterestedLeads(): Promise<InterestedLead[]> {
     company: extractCompany(reply.from_email_address || ''),
     dateReceived: reply.date_received,
     threadUrl: `https://send.buzzlead.io/replies/${reply.uuid}`,
+  }));
+}
+
+interface Lead {
+  id: number;
+  first_name: string;
+  last_name: string;
+  email: string;
+  company: string | null;
+  tags: Array<{ id: number; name: string }>;
+  created_at: string;
+  updated_at: string;
+}
+
+async function getLeads(limit: number = 200): Promise<Lead[]> {
+  const data = await fetchEmailBison(`/leads?limit=${limit}`);
+  return data?.data || [];
+}
+
+export async function getMeetingsBookedFromEmail(): Promise<MeetingBooked[]> {
+  // Fetch leads and filter for those with "Meeting Booked" tag
+  const leads = await getLeads(500);
+  const meetingBookedLeads = leads.filter(lead => 
+    lead.tags?.some(tag => tag.name === 'Meeting Booked')
+  );
+  
+  return meetingBookedLeads.map(lead => ({
+    id: `email-${lead.id}`,
+    name: `${lead.first_name} ${lead.last_name}`.trim() || 'Unknown',
+    email: lead.email,
+    company: lead.company || extractCompany(lead.email),
+    dateBooked: lead.updated_at, // Use updated_at as proxy for when tagged
+    source: 'email' as const,
+    threadUrl: `https://send.buzzlead.io/leads/${lead.id}`,
   }));
 }
 

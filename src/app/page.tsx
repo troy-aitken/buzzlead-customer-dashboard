@@ -1,5 +1,5 @@
-import { getEmailStats, getCampaignsWithStats } from "@/lib/emailbison";
-import { getCallStats } from "@/lib/close";
+import { getEmailStats, getCampaignsWithStats, getMeetingsBookedFromEmail, MeetingBooked } from "@/lib/emailbison";
+import { getCallStats, getMeetingsFromCalls, MeetingFromCall } from "@/lib/close";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const revalidate = 60;
 
 export default async function DashboardPage() {
   // Fetch all data in parallel
-  const [emailStats, campaignsWithStats, callStats] = await Promise.all([
+  const [emailStats, campaignsWithStats, callStats, emailMeetings, callMeetings] = await Promise.all([
     getEmailStats().catch(() => ({
       totalSent: 0,
       totalReplies: 0,
@@ -28,7 +28,14 @@ export default async function DashboardPage() {
       meetingsBooked: 0,
       recentCalls: [],
     })),
+    getMeetingsBookedFromEmail().catch(() => [] as MeetingBooked[]),
+    getMeetingsFromCalls().catch(() => [] as MeetingFromCall[]),
   ]);
+
+  // Combine and sort meetings by date (newest first)
+  const allMeetings = [...emailMeetings, ...callMeetings].sort(
+    (a, b) => new Date(b.dateBooked).getTime() - new Date(a.dateBooked).getTime()
+  );
 
   return (
     <div className="space-y-6">
@@ -40,6 +47,7 @@ export default async function DashboardPage() {
       <DashboardTabs
         emailStats={emailStats}
         campaignsWithStats={campaignsWithStats}
+        meetingsBooked={allMeetings}
         callStats={callStats}
       />
     </div>

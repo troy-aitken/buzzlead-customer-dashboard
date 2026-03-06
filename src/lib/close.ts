@@ -148,3 +148,40 @@ export async function getSequenceStats() {
     totalSequences: sequences.length,
   };
 }
+
+export interface MeetingFromCall {
+  id: string;
+  name: string;
+  email: string;
+  company: string;
+  dateBooked: string;
+  source: 'call';
+  recordingUrl?: string;
+  phone?: string;
+  agentName?: string;
+}
+
+export async function getMeetingsFromCalls(): Promise<MeetingFromCall[]> {
+  const calls = await getCallActivities();
+  
+  // Helper to check if call resulted in meeting
+  const isMeeting = (c: CallActivity) => 
+    c.disposition?.toLowerCase().includes('meeting') || 
+    c.disposition?.toLowerCase().includes('booked') ||
+    c.disposition?.toLowerCase().includes('demo') ||
+    c.disposition?.toLowerCase().includes('scheduled');
+  
+  const meetingCalls = calls.filter(isMeeting);
+  
+  return meetingCalls.map(call => ({
+    id: `call-${call.id}`,
+    name: call.contact_name || call.lead_name || 'Unknown',
+    email: '', // Close doesn't always have email in call activity
+    company: call.lead_name || '',
+    dateBooked: call.date_created,
+    source: 'call' as const,
+    recordingUrl: call.recording_url || undefined,
+    phone: call.phone,
+    agentName: call.user_name,
+  }));
+}

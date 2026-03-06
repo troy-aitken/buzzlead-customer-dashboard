@@ -9,9 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, BarChart3, Users, PhoneCall, Target, Calendar, Clock, ThumbsDown, Play, RefreshCw } from "lucide-react";
 
-import type { Campaign, InterestedLead } from "@/lib/emailbison";
-import type { CallActivity } from "@/lib/close";
-import { ExternalLink } from "lucide-react";
+import type { Campaign, InterestedLead, MeetingBooked } from "@/lib/emailbison";
+import type { CallActivity, MeetingFromCall } from "@/lib/close";
+import { ExternalLink, CalendarCheck } from "lucide-react";
 
 interface DashboardTabsProps {
   emailStats: {
@@ -37,6 +37,7 @@ interface DashboardTabsProps {
     interestedLeads?: InterestedLead[];
   };
   campaignsWithStats: Campaign[];
+  meetingsBooked: Array<MeetingBooked | MeetingFromCall>;
   callStats: {
     totalCalls: number;
     todayCalls: number;
@@ -102,7 +103,7 @@ function StatRow({ title, icon, stats }: {
   );
 }
 
-export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: DashboardTabsProps) {
+export function DashboardTabs({ emailStats, campaignsWithStats, meetingsBooked, callStats }: DashboardTabsProps) {
   const router = useRouter();
   const [callTableTab, setCallTableTab] = useState('recordings');
   const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
@@ -141,6 +142,13 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
         >
           <Phone className="w-4 h-4 mr-2" />
           Cold Calling
+        </TabsTrigger>
+        <TabsTrigger 
+          value="meetings"
+          className="data-[state=active]:bg-blue-600 data-[state=active]:text-white"
+        >
+          <CalendarCheck className="w-4 h-4 mr-2" />
+          Meetings Booked
         </TabsTrigger>
       </TabsList>
 
@@ -541,6 +549,166 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
         {/* Footer */}
         <div className="text-center text-xs text-slate-500 pt-4">
           Data sourced from Close.com • Auto-refreshes every 5 minutes
+        </div>
+      </TabsContent>
+
+      {/* Meetings Booked Tab */}
+      <TabsContent value="meetings" className="space-y-6">
+        {/* Header with last updated */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-white">Meetings Booked</h2>
+            <p className="text-sm text-slate-400">All meetings booked from cold email and cold calling</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-400">Updated {lastUpdated}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+        </div>
+
+        {/* Stats Summary */}
+        <div className="grid grid-cols-3 gap-4">
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">Total Meetings</span>
+                <CalendarCheck className="w-3.5 h-3.5 text-green-500" />
+              </div>
+              <div className="text-3xl font-bold text-white">{meetingsBooked?.length || 0}</div>
+              <div className="text-xs text-slate-500 mt-1">all time</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">From Email</span>
+                <Mail className="w-3.5 h-3.5 text-blue-500" />
+              </div>
+              <div className="text-3xl font-bold text-white">
+                {meetingsBooked?.filter(m => m.source === 'email').length || 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">email meetings</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-slate-900/50 border-slate-800">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-xs text-slate-400">From Calls</span>
+                <Phone className="w-3.5 h-3.5 text-green-500" />
+              </div>
+              <div className="text-3xl font-bold text-white">
+                {meetingsBooked?.filter(m => m.source === 'call').length || 0}
+              </div>
+              <div className="text-xs text-slate-500 mt-1">call meetings</div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Meetings Table */}
+        <Card className="bg-slate-900/50 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium text-white flex items-center gap-2">
+              <CalendarCheck className="w-4 h-4 text-green-400" />
+              All Meetings ({meetingsBooked?.length || 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-800">
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Name</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Company</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Email</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Date</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Source</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Link</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {meetingsBooked?.slice(0, 50).map((meeting) => (
+                    <tr key={meeting.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                      <td className="py-3 px-4 text-sm text-white font-medium">{meeting.name}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="bg-slate-800 border-slate-700 text-slate-300 text-xs">
+                          {meeting.company || '—'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-slate-300">
+                        {meeting.email || ('phone' in meeting ? meeting.phone : '—')}
+                      </td>
+                      <td className="py-3 px-4 text-sm text-slate-400">
+                        {new Date(meeting.dateBooked).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <Badge 
+                          variant="outline" 
+                          className={`text-xs ${
+                            meeting.source === 'email'
+                              ? 'bg-blue-500/10 border-blue-500/30 text-blue-400'
+                              : 'bg-green-500/10 border-green-500/30 text-green-400'
+                          }`}
+                        >
+                          {meeting.source === 'email' ? 'Email' : 'Call'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4">
+                        {meeting.source === 'email' && 'threadUrl' in meeting && meeting.threadUrl ? (
+                          <a 
+                            href={meeting.threadUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                            Thread
+                          </a>
+                        ) : meeting.source === 'call' && 'recordingUrl' in meeting && meeting.recordingUrl ? (
+                          <a 
+                            href={meeting.recordingUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="flex items-center gap-1 text-green-400 hover:text-green-300 text-sm"
+                          >
+                            <Play className="w-3.5 h-3.5" />
+                            Recording
+                          </a>
+                        ) : (
+                          <span className="text-slate-600">—</span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                  {(!meetingsBooked || meetingsBooked.length === 0) && (
+                    <tr>
+                      <td colSpan={6} className="py-8 text-center text-slate-500">
+                        No meetings booked yet
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Footer */}
+        <div className="text-center text-xs text-slate-500 pt-4">
+          Data sourced from Email Bison & Close.com • Auto-refreshes every 5 minutes
         </div>
       </TabsContent>
     </Tabs>
