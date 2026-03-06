@@ -143,6 +143,27 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
 
       {/* Overview Tab */}
       <TabsContent value="overview" className="space-y-6">
+        {/* Header with refresh */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-white">Lead Generation Dashboard</h2>
+            <p className="text-sm text-slate-400">Cold email & calling performance across all campaigns</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-400">Updated {lastUpdated}</span>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
+            </Button>
+          </div>
+        </div>
+
         <div className="grid gap-6">
           {/* Cold Email Section */}
           <div>
