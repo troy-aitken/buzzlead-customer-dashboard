@@ -98,9 +98,38 @@ export async function getCampaigns(config?: BisonConfig): Promise<Campaign[]> {
   return data?.data || [];
 }
 
-export async function getReplies(limit: number = 200, config?: BisonConfig): Promise<Reply[]> {
-  const data = await fetchEmailBison(`/replies?limit=${limit}`, config);
-  return data?.data || [];
+export async function getReplies(config?: BisonConfig, fetchAll: boolean = false): Promise<Reply[]> {
+  // First fetch to get pagination info
+  const firstPage = await fetchEmailBison('/replies?page=1', config);
+  if (!firstPage?.data) return [];
+  
+  if (!fetchAll) {
+    return firstPage.data;
+  }
+  
+  // Paginate through ALL replies for accuracy
+  const totalPages = firstPage.meta?.last_page || 1;
+  const allReplies: Reply[] = [...firstPage.data];
+  
+  // Fetch remaining pages in parallel batches of 10
+  const batchSize = 10;
+  for (let startPage = 2; startPage <= totalPages; startPage += batchSize) {
+    const endPage = Math.min(startPage + batchSize - 1, totalPages);
+    const pagePromises = [];
+    
+    for (let page = startPage; page <= endPage; page++) {
+      pagePromises.push(fetchEmailBison(`/replies?page=${page}`, config));
+    }
+    
+    const results = await Promise.all(pagePromises);
+    for (const result of results) {
+      if (result?.data) {
+        allReplies.push(...result.data);
+      }
+    }
+  }
+  
+  return allReplies;
 }
 
 // Helper to extract company from email domain
@@ -112,8 +141,8 @@ function extractCompany(email: string): string {
 }
 
 export async function getInterestedLeads(config?: BisonConfig): Promise<InterestedLead[]> {
-  // Fetch recent replies and filter for interested ones
-  const replies = await getReplies(500, config);
+  // Fetch ALL replies and filter for interested ones
+  const replies = await getReplies(config, true);
   const interestedReplies = replies.filter(r => r.interested && !r.automated_reply && r.type !== 'Bounced');
   
   const baseUrl = config?.baseUrl || 'https://send.buzzlead.io';
@@ -166,11 +195,24 @@ export async function getMeetingsBookedFromEmail(config?: BisonConfig): Promise<
 }
 
 export async function getEmailStats(config?: BisonConfig) {
-  const [campaigns, replies, interestedLeads] = await Promise.all([
-    getCampaigns(config),
-    getReplies(500, config), // Get recent replies for time-based stats
-    getInterestedLeads(config),
-  ]);
+  // Fetch campaigns first, then replies (paginated) separately to avoid duplicate fetches
+  const campaigns = await getCampaigns(config);
+  
+  // Fetch ALL replies for accurate time-based stats
+  const replies = await getReplies(config, true);
+  
+  // Filter interested leads from the replies we already have
+  const baseUrl = config?.baseUrl || 'https://send.buzzlead.io';
+  const interestedReplies = replies.filter(r => r.interested && !r.automated_reply && r.type !== 'Bounced');
+  const interestedLeads: InterestedLead[] = interestedReplies.map(reply => ({
+    id: reply.id,
+    replyUuid: reply.uuid,
+    name: reply.from_name || 'Unknown',
+    email: reply.from_email_address || '',
+    company: extractCompany(reply.from_email_address || ''),
+    dateReceived: reply.date_received,
+    threadUrl: `${baseUrl}/replies/${reply.uuid}`,
+  }));
   
   // Only count stats from ACTIVE campaigns (not draft/paused)
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
