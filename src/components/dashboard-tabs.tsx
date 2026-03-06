@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { CampaignsTable } from "./campaigns-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -99,8 +100,20 @@ function StatRow({ title, icon, stats }: {
 }
 
 export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: DashboardTabsProps) {
+  const router = useRouter();
   const [callTableTab, setCallTableTab] = useState('recordings');
-  const [lastUpdated] = useState(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    router.refresh();
+    // Update the timestamp after a short delay to show new time
+    setTimeout(() => {
+      setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      setIsRefreshing(false);
+    }, 1000);
+  };
 
   return (
     <Tabs defaultValue="overview" className="space-y-6">
@@ -220,9 +233,15 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-400">Updated {lastUpdated}</span>
-            <Button variant="outline" size="sm" className="border-slate-700 text-slate-300 hover:bg-slate-800">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
           </div>
         </div>
@@ -274,9 +293,15 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
           </div>
           <div className="flex items-center gap-3">
             <span className="text-sm text-slate-400">Updated {lastUpdated}</span>
-            <Button variant="outline" size="sm" className="border-slate-700 text-slate-300 hover:bg-slate-800">
-              <RefreshCw className="w-4 h-4 mr-2" />
-              Refresh
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="border-slate-700 text-slate-300 hover:bg-slate-800"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+            >
+              <RefreshCw className={`w-4 h-4 mr-2 ${isRefreshing ? 'animate-spin' : ''}`} />
+              {isRefreshing ? 'Refreshing...' : 'Refresh'}
             </Button>
           </div>
         </div>
