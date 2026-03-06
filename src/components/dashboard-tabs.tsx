@@ -22,6 +22,16 @@ interface DashboardTabsProps {
     bounceRate: string;
     positiveRate: string;
     campaigns: Campaign[];
+    // Time-based stats
+    repliesToday?: number;
+    repliesWeek?: number;
+    repliesMonth?: number;
+    bouncesToday?: number;
+    bouncesWeek?: number;
+    bouncesMonth?: number;
+    interestedToday?: number;
+    interestedWeek?: number;
+    interestedMonth?: number;
   };
   campaignsWithStats: Campaign[];
   callStats: {
@@ -197,32 +207,55 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
 
       {/* Cold Email Tab */}
       <TabsContent value="email" className="space-y-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
-            title="Total Sent"
-            value={emailStats.totalSent.toLocaleString()}
-            icon={<Mail className="w-4 h-4" />}
-          />
-          <StatCard
-            title="Total Replies"
-            value={emailStats.totalReplies.toLocaleString()}
-            subtitle={`${emailStats.replyRate}% reply rate`}
-            icon={<TrendingUp className="w-4 h-4" />}
-          />
-          <StatCard
-            title="Bounced"
-            value={emailStats.totalBounces.toLocaleString()}
-            subtitle={`${emailStats.bounceRate}% bounce rate`}
-            icon={<Target className="w-4 h-4" />}
-          />
-          <StatCard
-            title="Interested"
-            value={emailStats.positiveReplies.toLocaleString()}
-            subtitle={`${emailStats.positiveRate}% of replies`}
-            icon={<Users className="w-4 h-4" />}
-          />
+        {/* Header with last updated */}
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-xl font-bold text-white">Cold Email Dashboard</h2>
+            <p className="text-sm text-slate-400">Replies, bounces & interested leads across all campaigns</p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-sm text-slate-400">Updated {lastUpdated}</span>
+            <Button variant="outline" size="sm" className="border-slate-700 text-slate-300 hover:bg-slate-800">
+              <RefreshCw className="w-4 h-4 mr-2" />
+              Refresh
+            </Button>
+          </div>
         </div>
-        
+
+        {/* Replies Row */}
+        <StatRow 
+          title="Replies"
+          icon={<Mail className="w-4 h-4 text-blue-400" />}
+          stats={{
+            today: emailStats.repliesToday || 0,
+            week: emailStats.repliesWeek || 0,
+            month: emailStats.repliesMonth || 0,
+          }}
+        />
+
+        {/* Bounces Row */}
+        <StatRow 
+          title="Bounces"
+          icon={<Target className="w-4 h-4 text-red-400" />}
+          stats={{
+            today: emailStats.bouncesToday || 0,
+            week: emailStats.bouncesWeek || 0,
+            month: emailStats.bouncesMonth || 0,
+          }}
+        />
+
+        {/* Interested Row */}
+        <StatRow 
+          title="Interested"
+          icon={<Users className="w-4 h-4 text-green-400" />}
+          stats={{
+            today: emailStats.interestedToday || 0,
+            week: emailStats.interestedWeek || 0,
+            month: emailStats.interestedMonth || 0,
+          }}
+        />
+
+        {/* Campaigns Table */}
         <CampaignsTable campaigns={campaignsWithStats} />
       </TabsContent>
 

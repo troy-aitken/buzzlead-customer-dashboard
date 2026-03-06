@@ -1,5 +1,5 @@
 const EMAILBISON_API_KEY = process.env.EMAILBISON_API_KEY!;
-const EMAILBISON_BASE_URL = process.env.EMAILBISON_BASE_URL || 'https://personal.buzzlead.io/api';
+const EMAILBISON_BASE_URL = process.env.EMAILBISON_BASE_URL || 'https://send.buzzlead.io/api';
 
 async function fetchEmailBison(endpoint: string) {
   const res = await fetch(`${EMAILBISON_BASE_URL}${endpoint}`, {
@@ -42,19 +42,34 @@ export interface Campaign {
   tags: string[];
 }
 
+export interface Reply {
+  id: number;
+  uuid: string;
+  folder: string;
+  type: string;
+  interested: boolean;
+  automated_reply: boolean;
+  date_received: string;
+  campaign_id: number | null;
+}
+
 export async function getCampaigns(): Promise<Campaign[]> {
   const data = await fetchEmailBison('/campaigns');
   return data?.data || [];
 }
 
-export async function getCampaignStats(campaignId: string) {
-  const data = await fetchEmailBison(`/campaigns/${campaignId}/statistics`);
-  return data?.data || null;
+export async function getReplies(limit: number = 200): Promise<Reply[]> {
+  const data = await fetchEmailBison(`/replies?limit=${limit}`);
+  return data?.data || [];
 }
 
 export async function getEmailStats() {
-  const campaigns = await getCampaigns();
+  const [campaigns, replies] = await Promise.all([
+    getCampaigns(),
+    getReplies(500), // Get recent replies for time-based stats
+  ]);
   
+  // Calculate totals from campaigns
   let totalSent = 0;
   let totalReplies = 0;
   let totalBounces = 0;
@@ -67,7 +82,33 @@ export async function getEmailStats() {
     positiveReplies += campaign.interested || 0;
   }
   
+  // Calculate time-based stats from replies
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const weekStart = new Date(todayStart);
+  weekStart.setDate(weekStart.getDate() - 7);
+  const monthStart = new Date(todayStart);
+  monthStart.setDate(monthStart.getDate() - 30);
+  
+  // Filter replies by type and time
+  const realReplies = replies.filter(r => !r.automated_reply && r.type !== 'Bounced');
+  const bounced = replies.filter(r => r.type === 'Bounced');
+  const interested = replies.filter(r => r.interested);
+  
+  const repliesToday = realReplies.filter(r => new Date(r.date_received) >= todayStart).length;
+  const repliesWeek = realReplies.filter(r => new Date(r.date_received) >= weekStart).length;
+  const repliesMonth = realReplies.filter(r => new Date(r.date_received) >= monthStart).length;
+  
+  const bouncesToday = bounced.filter(r => new Date(r.date_received) >= todayStart).length;
+  const bouncesWeek = bounced.filter(r => new Date(r.date_received) >= weekStart).length;
+  const bouncesMonth = bounced.filter(r => new Date(r.date_received) >= monthStart).length;
+  
+  const interestedToday = interested.filter(r => new Date(r.date_received) >= todayStart).length;
+  const interestedWeek = interested.filter(r => new Date(r.date_received) >= weekStart).length;
+  const interestedMonth = interested.filter(r => new Date(r.date_received) >= monthStart).length;
+  
   return {
+    // Totals
     totalSent,
     totalReplies,
     totalBounces,
@@ -76,6 +117,18 @@ export async function getEmailStats() {
     bounceRate: totalSent > 0 ? ((totalBounces / totalSent) * 100).toFixed(2) : '0',
     positiveRate: totalReplies > 0 ? ((positiveReplies / totalReplies) * 100).toFixed(2) : '0',
     campaigns,
+    // Time-based replies
+    repliesToday,
+    repliesWeek,
+    repliesMonth,
+    // Time-based bounces
+    bouncesToday,
+    bouncesWeek,
+    bouncesMonth,
+    // Time-based interested
+    interestedToday,
+    interestedWeek,
+    interestedMonth,
   };
 }
 
