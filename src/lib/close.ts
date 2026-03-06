@@ -30,6 +30,9 @@ export interface CallActivity {
   user_name?: string;
   contact_name?: string;
   lead_name?: string;
+  recording_url?: string | null;
+  voicemail_url?: string | null;
+  phone?: string;
 }
 
 export interface CallStats {

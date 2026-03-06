@@ -356,7 +356,7 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                             {call.disposition || 'Unknown'}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-sm text-slate-400">—</td>
+                        <td className="py-3 px-4 text-sm text-slate-400">{call.phone || '—'}</td>
                         <td className="py-3 px-4 text-sm text-white font-mono">
                           {Math.floor((typeof call.duration === 'number' ? call.duration : parseInt(String(call.duration || '0'))) / 60)}:{((typeof call.duration === 'number' ? call.duration : parseInt(String(call.duration || '0'))) % 60).toString().padStart(2, '0')}
                         </td>
@@ -368,13 +368,16 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                           })}
                         </td>
                         <td className="py-3 px-4">
-                          {call.duration > 60 ? (
-                            <div className="flex items-center gap-2">
-                              <Play className="w-4 h-4 text-slate-400" />
-                              <div className="w-20 h-1 bg-slate-700 rounded-full overflow-hidden">
-                                <div className="w-1/3 h-full bg-blue-500"></div>
-                              </div>
-                            </div>
+                          {call.recording_url ? (
+                            <a 
+                              href={call.recording_url} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="flex items-center gap-2 text-blue-400 hover:text-blue-300"
+                            >
+                              <Play className="w-4 h-4" />
+                              <span className="text-xs">Play</span>
+                            </a>
                           ) : (
                             <span className="text-slate-600">—</span>
                           )}
