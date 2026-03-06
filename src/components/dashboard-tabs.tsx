@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./stat-card";
 import { CampaignsTable } from "./campaigns-table";
-import { CallsTable } from "./calls-table";
 import { SequencesTable } from "./sequences-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
