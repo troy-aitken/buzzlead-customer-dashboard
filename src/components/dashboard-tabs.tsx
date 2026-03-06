@@ -325,11 +325,11 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                   </thead>
                   <tbody>
                     {callStats.recentCalls?.filter(c => {
-                      const duration = parseInt(c.duration || '0');
+                      const duration = typeof c.duration === 'number' ? c.duration : parseInt(String(c.duration || '0'));
                       return duration >= 60;
                     }).slice(0, 10).map((call, i) => (
                       <tr key={i} className="border-b border-slate-800/50 hover:bg-slate-800/30">
-                        <td className="py-3 px-4 text-sm text-white">{call.user || 'Agent'}</td>
+                        <td className="py-3 px-4 text-sm text-white">{call.user_name || 'Agent'}</td>
                         <td className="py-3 px-4">
                           <Badge variant="outline" className="bg-slate-800 border-slate-700 text-slate-300 text-xs">
                             {call.lead_name?.split(' ')[0] || 'Workspace'}
@@ -350,9 +350,9 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                             {call.disposition || 'Unknown'}
                           </Badge>
                         </td>
-                        <td className="py-3 px-4 text-sm text-slate-400">{call.phone || '—'}</td>
+                        <td className="py-3 px-4 text-sm text-slate-400">—</td>
                         <td className="py-3 px-4 text-sm text-white font-mono">
-                          {Math.floor(parseInt(call.duration || '0') / 60)}:{(parseInt(call.duration || '0') % 60).toString().padStart(2, '0')}
+                          {Math.floor((typeof call.duration === 'number' ? call.duration : parseInt(String(call.duration || '0'))) / 60)}:{((typeof call.duration === 'number' ? call.duration : parseInt(String(call.duration || '0'))) % 60).toString().padStart(2, '0')}
                         </td>
                         <td className="py-3 px-4 text-sm text-slate-400">
                           {new Date(call.date_created || Date.now()).toLocaleTimeString('en-US', { 
@@ -362,7 +362,7 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                           })}
                         </td>
                         <td className="py-3 px-4">
-                          {call.recording_url ? (
+                          {call.duration > 60 ? (
                             <div className="flex items-center gap-2">
                               <Play className="w-4 h-4 text-slate-400" />
                               <div className="w-20 h-1 bg-slate-700 rounded-full overflow-hidden">
@@ -375,7 +375,7 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                         </td>
                       </tr>
                     ))}
-                    {(!callStats.recentCalls || callStats.recentCalls.filter(c => parseInt(c.duration || '0') >= 60).length === 0) && (
+                    {(!callStats.recentCalls || callStats.recentCalls.filter(c => (typeof c.duration === 'number' ? c.duration : parseInt(String(c.duration || '0'))) >= 60).length === 0) && (
                       <tr>
                         <td colSpan={8} className="py-8 text-center text-slate-500">
                           No calls over 1 minute today
