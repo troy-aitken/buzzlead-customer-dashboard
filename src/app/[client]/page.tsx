@@ -1,6 +1,6 @@
 import { notFound } from 'next/navigation';
 import { getClientBySlug } from "@/lib/airtable";
-import { getEmailStats, getCampaignsWithStats, getMeetingsBookedFromEmail, MeetingBooked, BisonConfig } from "@/lib/emailbison";
+import { getEmailStats, getMeetingsBookedFromEmail } from "@/lib/emailbison";
 import { getCallStats, getMeetingsFromCalls, MeetingFromCall } from "@/lib/close";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 
@@ -14,30 +14,14 @@ interface Props {
 export default async function ClientDashboardPage({ params }: Props) {
   const client = await getClientBySlug(params.client);
   
-  if (!client || !client.bisonApiKey) {
+  if (!client) {
     notFound();
   }
 
-  // Build config for this client
-  const bisonConfig: BisonConfig = {
-    apiKey: client.bisonApiKey,
-    baseUrl: client.bisonBaseUrl || 'https://send.buzzlead.io',
-  };
-
-  // Fetch all data in parallel
-  const [emailStats, campaignsWithStats, emailMeetings, callStats, callMeetings] = await Promise.all([
-    getEmailStats(bisonConfig).catch(() => ({
-      totalSent: 0,
-      totalReplies: 0,
-      totalBounces: 0,
-      positiveReplies: 0,
-      replyRate: '0',
-      bounceRate: '0',
-      positiveRate: '0',
-      campaigns: [],
-    })),
-    getCampaignsWithStats(bisonConfig).catch(() => []),
-    getMeetingsBookedFromEmail(bisonConfig).catch(() => [] as MeetingBooked[]),
+  // Fetch data from cache server + Close API
+  const [emailStats, emailMeetings, callStats, callMeetings] = await Promise.all([
+    getEmailStats(params.client),
+    getMeetingsBookedFromEmail(params.client),
     // Use default Close config (shared across clients for now)
     getCallStats().catch(() => ({
       totalCalls: 0,
@@ -58,16 +42,24 @@ export default async function ClientDashboardPage({ params }: Props) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-white">{client.name}</h1>
-        <p className="text-slate-400 mt-1">Performance Dashboard</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-white">{client.name}</h1>
+          <p className="text-slate-400 mt-1">Performance Dashboard</p>
+        </div>
+        {emailStats.cachedAt && (
+          <div className="text-xs text-slate-500">
+            Data cached: {new Date(emailStats.cachedAt).toLocaleString()}
+          </div>
+        )}
       </div>
       
       <DashboardTabs
         emailStats={emailStats}
-        campaignsWithStats={campaignsWithStats}
+        campaignsWithStats={emailStats.campaigns || []}
         meetingsBooked={allMeetings}
         callStats={callStats}
+        clientSlug={params.client}
       />
     </div>
   );

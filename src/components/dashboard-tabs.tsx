@@ -35,9 +35,12 @@ interface DashboardTabsProps {
     interestedMonth?: number;
     // Interested leads list
     interestedLeads?: InterestedLead[];
+    // Cache metadata
+    cachedAt?: string;
   };
   campaignsWithStats: Campaign[];
   meetingsBooked: Array<MeetingBooked | MeetingFromCall>;
+  clientSlug?: string;
   callStats: {
     totalCalls: number;
     todayCalls: number;
@@ -91,7 +94,7 @@ function StatRow({ title, icon, stats }: {
         <Card className="bg-slate-900/50 border-slate-800">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs text-slate-400">This Month</span>
+              <span className="text-xs text-slate-400">Last 30 Days</span>
               <Calendar className="w-3.5 h-3.5 text-slate-500" />
             </div>
             <div className="text-3xl font-bold text-white">{stats.month}</div>
@@ -103,20 +106,35 @@ function StatRow({ title, icon, stats }: {
   );
 }
 
-export function DashboardTabs({ emailStats, campaignsWithStats, meetingsBooked, callStats }: DashboardTabsProps) {
+export function DashboardTabs({ emailStats, campaignsWithStats, meetingsBooked, clientSlug, callStats }: DashboardTabsProps) {
   const router = useRouter();
   const [callTableTab, setCallTableTab] = useState('recordings');
-  const [lastUpdated, setLastUpdated] = useState(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+  const [lastUpdated, setLastUpdated] = useState(
+    emailStats.cachedAt 
+      ? new Date(emailStats.cachedAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+      : new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' })
+  );
   const [isRefreshing, setIsRefreshing] = useState(false);
 
   const handleRefresh = async () => {
+    if (!clientSlug) {
+      router.refresh();
+      return;
+    }
+    
     setIsRefreshing(true);
-    router.refresh();
-    // Update the timestamp after a short delay to show new time
-    setTimeout(() => {
-      setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+    try {
+      // Trigger refresh on cache server
+      const res = await fetch(`/api/refresh/${clientSlug}`, { method: 'POST' });
+      if (res.ok) {
+        router.refresh();
+        setLastUpdated(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
+      }
+    } catch (err) {
+      console.error('Refresh failed:', err);
+    } finally {
       setIsRefreshing(false);
-    }, 1000);
+    }
   };
 
   return (
