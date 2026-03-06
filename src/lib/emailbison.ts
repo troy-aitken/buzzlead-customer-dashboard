@@ -69,20 +69,24 @@ export async function getEmailStats() {
     getReplies(500), // Get recent replies for time-based stats
   ]);
   
-  // Calculate totals from campaigns
+  // Only count stats from ACTIVE campaigns (not draft/paused)
+  const activeCampaigns = campaigns.filter(c => c.status === 'active');
+  const activeCampaignIds = new Set(activeCampaigns.map(c => c.id));
+  
+  // Calculate totals from active campaigns only
   let totalSent = 0;
   let totalReplies = 0;
   let totalBounces = 0;
   let positiveReplies = 0;
   
-  for (const campaign of campaigns) {
+  for (const campaign of activeCampaigns) {
     totalSent += campaign.emails_sent || 0;
     totalReplies += campaign.replied || 0;
     totalBounces += campaign.bounced || 0;
     positiveReplies += campaign.interested || 0;
   }
   
-  // Calculate time-based stats from replies
+  // Calculate time-based stats from replies linked to active campaigns only
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart);
@@ -90,10 +94,13 @@ export async function getEmailStats() {
   const monthStart = new Date(todayStart);
   monthStart.setDate(monthStart.getDate() - 30);
   
-  // Filter replies by type and time
-  const realReplies = replies.filter(r => !r.automated_reply && r.type !== 'Bounced');
-  const bounced = replies.filter(r => r.type === 'Bounced');
-  const interested = replies.filter(r => r.interested);
+  // Filter replies to only those from active campaigns
+  const activeReplies = replies.filter(r => r.campaign_id && activeCampaignIds.has(r.campaign_id));
+  
+  // Filter by type
+  const realReplies = activeReplies.filter(r => !r.automated_reply && r.type !== 'Bounced');
+  const bounced = activeReplies.filter(r => r.type === 'Bounced');
+  const interested = activeReplies.filter(r => r.interested);
   
   const repliesToday = realReplies.filter(r => new Date(r.date_received) >= todayStart).length;
   const repliesWeek = realReplies.filter(r => new Date(r.date_received) >= weekStart).length;
@@ -108,7 +115,7 @@ export async function getEmailStats() {
   const interestedMonth = interested.filter(r => new Date(r.date_received) >= monthStart).length;
   
   return {
-    // Totals
+    // Totals (from active campaigns only)
     totalSent,
     totalReplies,
     totalBounces,
@@ -117,7 +124,7 @@ export async function getEmailStats() {
     bounceRate: totalSent > 0 ? ((totalBounces / totalSent) * 100).toFixed(2) : '0',
     positiveRate: totalReplies > 0 ? ((positiveReplies / totalReplies) * 100).toFixed(2) : '0',
     campaigns,
-    // Time-based replies
+    // Time-based replies (from active campaigns only)
     repliesToday,
     repliesWeek,
     repliesMonth,
