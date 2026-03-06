@@ -1,5 +1,5 @@
 const EMAILBISON_API_KEY = process.env.EMAILBISON_API_KEY!;
-const EMAILBISON_BASE_URL = process.env.EMAILBISON_BASE_URL || 'https://app.emailbison.com/api';
+const EMAILBISON_BASE_URL = process.env.EMAILBISON_BASE_URL || 'https://personal.buzzlead.io/api';
 
 async function fetchEmailBison(endpoint: string) {
   const res = await fetch(`${EMAILBISON_BASE_URL}${endpoint}`, {
@@ -18,7 +18,31 @@ async function fetchEmailBison(endpoint: string) {
   return res.json();
 }
 
-export async function getCampaigns() {
+export interface Campaign {
+  id: number;
+  uuid: string;
+  name: string;
+  type: string;
+  status: string;
+  completion_percentage: number;
+  emails_sent: number;
+  opened: number;
+  unique_opens: number;
+  replied: number;
+  unique_replies: number;
+  bounced: number;
+  unsubscribed: number;
+  interested: number;
+  total_leads_contacted: number;
+  total_leads: number | null;
+  max_emails_per_day: number;
+  max_new_leads_per_day: number;
+  created_at: string;
+  updated_at: string;
+  tags: string[];
+}
+
+export async function getCampaigns(): Promise<Campaign[]> {
   const data = await fetchEmailBison('/campaigns');
   return data?.data || [];
 }
@@ -29,7 +53,6 @@ export async function getCampaignStats(campaignId: string) {
 }
 
 export async function getEmailStats() {
-  // Get aggregated stats across all campaigns
   const campaigns = await getCampaigns();
   
   let totalSent = 0;
@@ -37,14 +60,11 @@ export async function getEmailStats() {
   let totalBounces = 0;
   let positiveReplies = 0;
   
-  for (const campaign of campaigns.slice(0, 10)) { // Limit to recent 10
-    const stats = await fetchEmailBison(`/campaigns/${campaign.id}/statistics`);
-    if (stats?.data) {
-      totalSent += stats.data.sent || 0;
-      totalReplies += stats.data.replied || 0;
-      totalBounces += stats.data.bounced || 0;
-      positiveReplies += stats.data.interested || 0;
-    }
+  for (const campaign of campaigns) {
+    totalSent += campaign.emails_sent || 0;
+    totalReplies += campaign.replied || 0;
+    totalBounces += campaign.bounced || 0;
+    positiveReplies += campaign.interested || 0;
   }
   
   return {
@@ -52,38 +72,13 @@ export async function getEmailStats() {
     totalReplies,
     totalBounces,
     positiveReplies,
-    replyRate: totalSent > 0 ? ((totalReplies / totalSent) * 100).toFixed(1) : '0',
-    bounceRate: totalSent > 0 ? ((totalBounces / totalSent) * 100).toFixed(1) : '0',
-    positiveRate: totalReplies > 0 ? ((positiveReplies / totalReplies) * 100).toFixed(1) : '0',
-    campaigns: campaigns.slice(0, 5),
-  };
-}
-
-export interface Campaign {
-  id: string;
-  name: string;
-  status: string;
-  created_at: string;
-  statistics?: {
-    sent: number;
-    opened: number;
-    replied: number;
-    bounced: number;
-    interested: number;
+    replyRate: totalSent > 0 ? ((totalReplies / totalSent) * 100).toFixed(2) : '0',
+    bounceRate: totalSent > 0 ? ((totalBounces / totalSent) * 100).toFixed(2) : '0',
+    positiveRate: totalReplies > 0 ? ((positiveReplies / totalReplies) * 100).toFixed(2) : '0',
+    campaigns,
   };
 }
 
 export async function getCampaignsWithStats(): Promise<Campaign[]> {
-  const campaigns = await getCampaigns();
-  const campaignsWithStats: Campaign[] = [];
-  
-  for (const campaign of campaigns.slice(0, 10)) {
-    const stats = await fetchEmailBison(`/campaigns/${campaign.id}/statistics`);
-    campaignsWithStats.push({
-      ...campaign,
-      statistics: stats?.data || null,
-    });
-  }
-  
-  return campaignsWithStats;
+  return getCampaigns();
 }
