@@ -39,6 +39,12 @@ export interface CallStats {
   monthCalls: number;
   connectRate: string;
   meetingsBooked: number;
+  meetingsTodayCount: number;
+  meetingsWeekCount: number;
+  meetingsMonthCount: number;
+  notInterestedTodayCount: number;
+  notInterestedWeekCount: number;
+  notInterestedMonthCount: number;
   recentCalls: CallActivity[];
 }
 
@@ -67,12 +73,30 @@ export async function getCallStats(): Promise<CallStats> {
     ? ((connectedCalls.length / calls.length) * 100).toFixed(1) 
     : '0';
   
-  // Meetings booked (look for disposition containing 'meeting' or 'booked')
-  const meetingsBooked = calls.filter(c => 
+  // Helper to check if call resulted in meeting
+  const isMeeting = (c: CallActivity) => 
     c.disposition?.toLowerCase().includes('meeting') || 
     c.disposition?.toLowerCase().includes('booked') ||
-    c.disposition?.toLowerCase().includes('demo')
-  ).length;
+    c.disposition?.toLowerCase().includes('demo') ||
+    c.disposition?.toLowerCase().includes('scheduled');
+  
+  // Helper to check if call resulted in not interested
+  const isNotInterested = (c: CallActivity) =>
+    c.disposition?.toLowerCase().includes('not interested') ||
+    c.disposition?.toLowerCase().includes('notinterested') ||
+    c.disposition?.toLowerCase().includes('no interest') ||
+    c.disposition?.toLowerCase().includes('declined') ||
+    c.disposition?.toLowerCase().includes('rejected');
+  
+  // Meetings booked counts
+  const meetingsTodayCount = todayCalls.filter(isMeeting).length;
+  const meetingsWeekCount = weekCalls.filter(isMeeting).length;
+  const meetingsMonthCount = monthCalls.filter(isMeeting).length;
+  
+  // Not interested counts
+  const notInterestedTodayCount = todayCalls.filter(isNotInterested).length;
+  const notInterestedWeekCount = weekCalls.filter(isNotInterested).length;
+  const notInterestedMonthCount = monthCalls.filter(isNotInterested).length;
   
   return {
     totalCalls: calls.length,
@@ -80,7 +104,13 @@ export async function getCallStats(): Promise<CallStats> {
     weekCalls: weekCalls.length,
     monthCalls: monthCalls.length,
     connectRate,
-    meetingsBooked,
+    meetingsBooked: meetingsMonthCount,
+    meetingsTodayCount,
+    meetingsWeekCount,
+    meetingsMonthCount,
+    notInterestedTodayCount,
+    notInterestedWeekCount,
+    notInterestedMonthCount,
     recentCalls: calls.slice(0, 10),
   };
 }

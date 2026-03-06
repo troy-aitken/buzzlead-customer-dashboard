@@ -32,6 +32,12 @@ interface DashboardTabsProps {
     monthCalls: number;
     connectRate: string;
     meetingsBooked: number;
+    meetingsTodayCount?: number;
+    meetingsWeekCount?: number;
+    meetingsMonthCount?: number;
+    notInterestedTodayCount?: number;
+    notInterestedWeekCount?: number;
+    notInterestedMonthCount?: number;
     recentCalls: CallActivity[];
   };
   sequenceStats: {
@@ -253,9 +259,9 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
           title="Meetings Booked"
           icon={<Calendar className="w-4 h-4 text-blue-400" />}
           stats={{
-            today: callStats.meetingsBooked || 5,
-            week: Math.round(callStats.meetingsBooked * 6) || 31,
-            month: Math.round(callStats.meetingsBooked * 6) || 31,
+            today: callStats.meetingsTodayCount || 0,
+            week: callStats.meetingsWeekCount || 0,
+            month: callStats.meetingsMonthCount || 0,
           }}
         />
 
@@ -264,9 +270,9 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
           title="Not Interested"
           icon={<ThumbsDown className="w-4 h-4 text-orange-400" />}
           stats={{
-            today: 0,
-            week: 72,
-            month: 72,
+            today: callStats.notInterestedTodayCount || 0,
+            week: callStats.notInterestedWeekCount || 0,
+            month: callStats.notInterestedMonthCount || 0,
           }}
         />
 
@@ -275,9 +281,9 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
           title="Calls Made"
           icon={<PhoneCall className="w-4 h-4 text-green-400" />}
           stats={{
-            today: callStats.todayCalls || 34,
-            week: callStats.weekCalls || 3014,
-            month: callStats.monthCalls || 3016,
+            today: callStats.todayCalls || 0,
+            week: callStats.weekCalls || 0,
+            month: callStats.monthCalls || 0,
           }}
         />
 
@@ -295,9 +301,9 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
                 }`}
               >
                 {tab === 'recordings' && `Call Recordings (${callStats.recentCalls?.length || 0})`}
-                {tab === 'meetings' && 'Meetings by Workspace'}
-                {tab === 'notinterested' && 'Not Interested by Workspace'}
-                {tab === 'calls' && 'Calls by Workspace'}
+                {tab === 'meetings' && 'Meetings'}
+                {tab === 'notinterested' && 'Not Interested'}
+                {tab === 'calls' && 'All Calls'}
                 {tab === 'recent' && 'Recent Meetings'}
               </button>
             ))}
