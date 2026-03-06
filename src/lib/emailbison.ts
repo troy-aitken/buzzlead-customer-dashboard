@@ -174,7 +174,6 @@ export async function getEmailStats(config?: BisonConfig) {
   
   // Only count stats from ACTIVE campaigns (not draft/paused)
   const activeCampaigns = campaigns.filter(c => c.status === 'active');
-  const activeCampaignIds = new Set(activeCampaigns.map(c => c.id));
   
   // Calculate totals from active campaigns only
   let totalSent = 0;
@@ -189,7 +188,7 @@ export async function getEmailStats(config?: BisonConfig) {
     positiveReplies += campaign.interested || 0;
   }
   
-  // Calculate time-based stats from replies linked to active campaigns only
+  // Calculate time-based stats from all replies (not filtered by campaign_id since many are null)
   const now = new Date();
   const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const weekStart = new Date(todayStart);
@@ -197,13 +196,10 @@ export async function getEmailStats(config?: BisonConfig) {
   const monthStart = new Date(todayStart);
   monthStart.setDate(monthStart.getDate() - 30);
   
-  // Filter replies to only those from active campaigns
-  const activeReplies = replies.filter(r => r.campaign_id && activeCampaignIds.has(r.campaign_id));
-  
-  // Filter by type
-  const realReplies = activeReplies.filter(r => !r.automated_reply && r.type !== 'Bounced');
-  const bounced = activeReplies.filter(r => r.type === 'Bounced');
-  const interested = activeReplies.filter(r => r.interested);
+  // Filter by type - don't filter by campaign_id as many replies have it null
+  const realReplies = replies.filter(r => !r.automated_reply && r.type !== 'Bounced');
+  const bounced = replies.filter(r => r.type === 'Bounced');
+  const interested = replies.filter(r => r.interested);
   
   const repliesToday = realReplies.filter(r => new Date(r.date_received) >= todayStart).length;
   const repliesWeek = realReplies.filter(r => new Date(r.date_received) >= weekStart).length;
