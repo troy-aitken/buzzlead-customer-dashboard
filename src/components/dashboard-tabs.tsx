@@ -4,14 +4,13 @@ import { useState } from 'react';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { StatCard } from "./stat-card";
 import { CampaignsTable } from "./campaigns-table";
-import { SequencesTable } from "./sequences-table";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, BarChart3, Users, TrendingUp, PhoneCall, Target, Calendar, Clock, ThumbsDown, Play, RefreshCw } from "lucide-react";
 
 import type { Campaign } from "@/lib/emailbison";
-import type { CallActivity, Sequence } from "@/lib/close";
+import type { CallActivity } from "@/lib/close";
 
 interface DashboardTabsProps {
   emailStats: {
@@ -39,13 +38,6 @@ interface DashboardTabsProps {
     notInterestedWeekCount?: number;
     notInterestedMonthCount?: number;
     recentCalls: CallActivity[];
-  };
-  sequenceStats: {
-    sequences: Sequence[];
-    totalActive: number;
-    totalPaused: number;
-    totalFinished: number;
-    totalSequences: number;
   };
 }
 
@@ -97,7 +89,7 @@ function StatRow({ title, icon, stats }: {
   );
 }
 
-export function DashboardTabs({ emailStats, campaignsWithStats, callStats, sequenceStats }: DashboardTabsProps) {
+export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: DashboardTabsProps) {
   const [callTableTab, setCallTableTab] = useState('recordings');
   const [lastUpdated] = useState(new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', second: '2-digit' }));
 
@@ -198,11 +190,8 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats, seque
             </div>
           </div>
 
-          {/* Tables */}
-          <div className="grid lg:grid-cols-2 gap-6">
-            <CampaignsTable campaigns={campaignsWithStats.slice(0, 5)} />
-            <SequencesTable sequences={sequenceStats.sequences} />
-          </div>
+          {/* Campaigns Table - Full Width */}
+          <CampaignsTable campaigns={campaignsWithStats} />
         </div>
       </TabsContent>
 

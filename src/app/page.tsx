@@ -1,5 +1,5 @@
 import { getEmailStats, getCampaignsWithStats } from "@/lib/emailbison";
-import { getCallStats, getSequenceStats } from "@/lib/close";
+import { getCallStats } from "@/lib/close";
 import { DashboardTabs } from "@/components/dashboard-tabs";
 
 export const dynamic = 'force-dynamic';
@@ -7,7 +7,7 @@ export const revalidate = 60;
 
 export default async function DashboardPage() {
   // Fetch all data in parallel
-  const [emailStats, campaignsWithStats, callStats, sequenceStats] = await Promise.all([
+  const [emailStats, campaignsWithStats, callStats] = await Promise.all([
     getEmailStats().catch(() => ({
       totalSent: 0,
       totalReplies: 0,
@@ -28,13 +28,6 @@ export default async function DashboardPage() {
       meetingsBooked: 0,
       recentCalls: [],
     })),
-    getSequenceStats().catch(() => ({
-      sequences: [],
-      totalActive: 0,
-      totalPaused: 0,
-      totalFinished: 0,
-      totalSequences: 0,
-    })),
   ]);
 
   return (
@@ -48,7 +41,6 @@ export default async function DashboardPage() {
         emailStats={emailStats}
         campaignsWithStats={campaignsWithStats}
         callStats={callStats}
-        sequenceStats={sequenceStats}
       />
     </div>
   );
