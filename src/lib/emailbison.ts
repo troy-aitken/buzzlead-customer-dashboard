@@ -51,6 +51,20 @@ export interface Reply {
   automated_reply: boolean;
   date_received: string;
   campaign_id: number | null;
+  from_name?: string;
+  from_email_address?: string;
+  lead_id?: number | null;
+  subject?: string;
+}
+
+export interface InterestedLead {
+  id: number;
+  replyUuid: string;
+  name: string;
+  email: string;
+  company: string;
+  dateReceived: string;
+  threadUrl: string;
 }
 
 export async function getCampaigns(): Promise<Campaign[]> {
@@ -63,10 +77,35 @@ export async function getReplies(limit: number = 200): Promise<Reply[]> {
   return data?.data || [];
 }
 
+export async function getInterestedLeads(): Promise<InterestedLead[]> {
+  // Fetch recent replies and filter for interested ones
+  const replies = await getReplies(500);
+  const interestedReplies = replies.filter(r => r.interested && !r.automated_reply && r.type !== 'Bounced');
+  
+  // Extract company from email domain
+  const extractCompany = (email: string): string => {
+    const domain = email.split('@')[1] || '';
+    // Remove common TLDs and format nicely
+    const company = domain.split('.')[0] || '';
+    return company.charAt(0).toUpperCase() + company.slice(1);
+  };
+  
+  return interestedReplies.map(reply => ({
+    id: reply.id,
+    replyUuid: reply.uuid,
+    name: reply.from_name || 'Unknown',
+    email: reply.from_email_address || '',
+    company: extractCompany(reply.from_email_address || ''),
+    dateReceived: reply.date_received,
+    threadUrl: `https://send.buzzlead.io/replies/${reply.uuid}`,
+  }));
+}
+
 export async function getEmailStats() {
-  const [campaigns, replies] = await Promise.all([
+  const [campaigns, replies, interestedLeads] = await Promise.all([
     getCampaigns(),
     getReplies(500), // Get recent replies for time-based stats
+    getInterestedLeads(),
   ]);
   
   // Only count stats from ACTIVE campaigns (not draft/paused)
@@ -136,6 +175,8 @@ export async function getEmailStats() {
     interestedToday,
     interestedWeek,
     interestedMonth,
+    // Full interested leads list
+    interestedLeads,
   };
 }
 

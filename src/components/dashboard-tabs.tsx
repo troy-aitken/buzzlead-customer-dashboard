@@ -9,8 +9,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Mail, Phone, BarChart3, Users, PhoneCall, Target, Calendar, Clock, ThumbsDown, Play, RefreshCw } from "lucide-react";
 
-import type { Campaign } from "@/lib/emailbison";
+import type { Campaign, InterestedLead } from "@/lib/emailbison";
 import type { CallActivity } from "@/lib/close";
+import { ExternalLink } from "lucide-react";
 
 interface DashboardTabsProps {
   emailStats: {
@@ -32,6 +33,8 @@ interface DashboardTabsProps {
     interestedToday?: number;
     interestedWeek?: number;
     interestedMonth?: number;
+    // Interested leads list
+    interestedLeads?: InterestedLead[];
   };
   campaignsWithStats: Campaign[];
   callStats: {
@@ -302,6 +305,70 @@ export function DashboardTabs({ emailStats, campaignsWithStats, callStats }: Das
 
         {/* Campaigns Table */}
         <CampaignsTable campaigns={campaignsWithStats} />
+
+        {/* Interested Leads Table */}
+        <Card className="bg-slate-900/50 border-slate-800">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-medium text-white flex items-center gap-2">
+              <Users className="w-4 h-4 text-green-400" />
+              Interested Leads ({emailStats.interestedLeads?.length || 0})
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-x-auto">
+              <table className="w-full">
+                <thead>
+                  <tr className="border-b border-slate-800">
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Name</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Company</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Email</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Date</th>
+                    <th className="text-left py-3 px-4 text-xs font-medium text-slate-400 uppercase">Thread</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {emailStats.interestedLeads?.slice(0, 25).map((lead) => (
+                    <tr key={lead.id} className="border-b border-slate-800/50 hover:bg-slate-800/30">
+                      <td className="py-3 px-4 text-sm text-white font-medium">{lead.name}</td>
+                      <td className="py-3 px-4">
+                        <Badge variant="outline" className="bg-slate-800 border-slate-700 text-slate-300 text-xs">
+                          {lead.company || '—'}
+                        </Badge>
+                      </td>
+                      <td className="py-3 px-4 text-sm text-slate-300">{lead.email}</td>
+                      <td className="py-3 px-4 text-sm text-slate-400">
+                        {new Date(lead.dateReceived).toLocaleDateString('en-US', {
+                          month: 'short',
+                          day: 'numeric',
+                          hour: 'numeric',
+                          minute: '2-digit',
+                        })}
+                      </td>
+                      <td className="py-3 px-4">
+                        <a 
+                          href={lead.threadUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-1 text-blue-400 hover:text-blue-300 text-sm"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                          View
+                        </a>
+                      </td>
+                    </tr>
+                  ))}
+                  {(!emailStats.interestedLeads || emailStats.interestedLeads.length === 0) && (
+                    <tr>
+                      <td colSpan={5} className="py-8 text-center text-slate-500">
+                        No interested leads yet
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </CardContent>
+        </Card>
       </TabsContent>
 
       {/* Cold Calling Tab - Redesigned to match screenshot */}
